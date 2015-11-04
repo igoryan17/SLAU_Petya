@@ -1,6 +1,9 @@
 import org.jblas.DoubleMatrix;
 import org.jblas.Solve;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by igoryan on 30.10.15.
  */
@@ -17,36 +20,49 @@ public class solverSLAUImpl implements solverSLAU {
     public final int N;
 
     public solverSLAUImpl(Builder huilder) {
-        N = huilder.getN();
-        X = huilder.getX();
         A = huilder.getA();
-        f = huilder.getF();
-        double max = Math.pow(A.max(), -1);
-        //A = A.muli(max);
-        //f = f.muli(max);
-        System.out.println("norm A is " + A.norm1());
-        //ATranspose = A.transpose();
-        //A = ATranspose.mmul(A);
-        //f = ATranspose.mmul(f);
-        buildD();
-        //DInverse = Solve.pinv(D);
-        //P = DInverse.mmul(A.sub(D)).mmuli(-1);
-        //g = DInverse.mmul(f);
-        //normP = P.norm1();
-        //System.out.println("normP is " + normP);
-        huilder.printMatrix(A);
+        N = huilder.getN();
+        for (int i = 0; i < (A.rows - 1); i++) {
+            List<MyHandler> threads = new ArrayList<MyHandler>();
+            for (int j = i + 1; j < (A.rows - 1); j++) {
+                MyHandler myHandler = new MyHandler(i, j, A);
+                myHandler.run();
+                threads.add(myHandler);
+            }
+            for (MyHandler thread : threads) {
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        for (int i = 0; i < A.rows; i++) {
+            for (int j = 0; j < A.columns; j++) {
+                System.out.print(A.get(i, j) + " ");
+            }
+            System.out.println();
+        }
     }
 
-    public void buildD() {
-        D = new DoubleMatrix(N, N);
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                if (i == j) {
-                    D.put(i, j, A.get(i, j));
-                }
-                else {
-                    D.put(i, j, 0);
-                }
+    private class MyHandler extends Thread {
+        private DoubleMatrix A;
+        private int delete;
+        private int current;
+
+        MyHandler(int deletePosition, int currentPosition, DoubleMatrix A) {
+            delete = deletePosition;
+            current = currentPosition;
+            this.A = A;
+        }
+
+        @Override
+        public void run() {
+            for (int i = 0; i < A.columns; i++) {
+                double deleteElem = A.get(delete, delete);
+                double put = (A.get(delete, i) / deleteElem) * (-A.get(current, delete));
+                double currentElem = A.get(current, i) + put;
+                A.put(current, i, currentElem);
             }
         }
     }
@@ -58,6 +74,13 @@ public class solverSLAUImpl implements solverSLAU {
 
     @Override
     public void solve() {
-        X = Solve.solve(A, f);
+        for (int i = A.rows - 1; i >= 0; i--) {
+            if (i == A.rows - 1) {
+                X.put(i, 0, f.get(i, 0) / A.get(i, i));
+            }
+            for (int j = i + 1; j < A.rows; j++) {
+
+            }
+        }
     }
 }

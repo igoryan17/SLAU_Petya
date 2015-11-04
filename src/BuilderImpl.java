@@ -30,6 +30,28 @@ public class BuilderImpl implements Builder {
                 initialization(i, j);
             }
         }
+        boolean res = false;
+        for (int i = 0; i < A.rows; i++) {
+            for (int j = 0; j < A.columns; j++) {
+                if (i!= j) {
+                    boolean flag = false;
+                    double temp = A.get(i, j);
+                    for (int k = 0; k < A.rows; k++) {
+                        if (A.get(k, k) > temp) {
+                            flag = true;
+                            break;
+                        }
+                    }
+                    res = res && flag;
+                }
+            }
+        }
+        if (res) {
+            System.out.println("diagonal majority");
+        }
+        else {
+            System.out.println("not diagonal majority");
+        }
     }
 
     @Override
