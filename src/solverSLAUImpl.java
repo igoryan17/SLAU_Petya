@@ -19,6 +19,7 @@ public class solverSLAUImpl implements solverSLAU {
     private double normP;
     public final int N;
 
+    //constructor
     public solverSLAUImpl(Builder huilder) {
         A = huilder.getA();
         N = huilder.getN();
