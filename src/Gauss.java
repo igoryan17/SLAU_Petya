@@ -1,5 +1,4 @@
 import org.jblas.DoubleMatrix;
-import org.jblas.Solve;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,22 +6,22 @@ import java.util.List;
 /**
  * Created by igoryan on 30.10.15.
  */
-public class solverSLAUImpl implements solverSLAU {
+public class Gauss implements SolverSLAU {
     private DoubleMatrix X;
     private DoubleMatrix A;
-    private DoubleMatrix ATranspose;
     private DoubleMatrix f;
-    private DoubleMatrix D;
-    private DoubleMatrix P;
-    private DoubleMatrix DInverse;
-    private DoubleMatrix g;
-    private double normP;
+    private DoubleMatrix AOld;
+    private DoubleMatrix fOld;
     public final int N;
 
     //constructor
-    public solverSLAUImpl(Builder huilder) {
+    public Gauss(Builder huilder) {
         A = huilder.getA();
         N = huilder.getN();
+        f = huilder.getF();
+        X = new DoubleMatrix(N, 1);
+        AOld = A;
+        fOld = f;
         for (int i = 0; i < (A.rows - 1); i++) {
             List<MyHandler> threads = new ArrayList<MyHandler>();
             for (int j = i + 1; j < (A.rows - 1); j++) {
@@ -37,12 +36,6 @@ public class solverSLAUImpl implements solverSLAU {
                     e.printStackTrace();
                 }
             }
-        }
-        for (int i = 0; i < A.rows; i++) {
-            for (int j = 0; j < A.columns; j++) {
-                System.out.print(A.get(i, j) + " ");
-            }
-            System.out.println();
         }
     }
 
@@ -62,6 +55,8 @@ public class solverSLAUImpl implements solverSLAU {
             for (int i = 0; i < A.columns; i++) {
                 double deleteElem = A.get(delete, delete);
                 double put = (A.get(delete, i) / deleteElem) * (-A.get(current, delete));
+                double number = (f.get(delete, 0) / deleteElem) * (-A.get(current, delete));
+                f.put(current, 0, f.get(current, 0) + number);
                 double currentElem = A.get(current, i) + put;
                 A.put(current, i, currentElem);
             }
@@ -75,13 +70,27 @@ public class solverSLAUImpl implements solverSLAU {
 
     @Override
     public void solve() {
-        for (int i = A.rows - 1; i >= 0; i--) {
-            if (i == A.rows - 1) {
-                X.put(i, 0, f.get(i, 0) / A.get(i, i));
+        X.put(X.rows - 1, 0, f.get(f.rows - 1, 0) / A.get(A.rows - 1, A.rows - 1));
+        for (int i = X.rows - 2; i >=0; i--) {
+            double x = f.get(i, 0);
+            for (int j = i + 1; j < A.columns; j++) {
+                x-= A.get(i, j) * X.get(j, 0);
             }
-            for (int j = i + 1; j < A.rows; j++) {
+            x/= A.get(i, i);
+            X.put(i, 0, x);
+        }
+        DoubleMatrix r = AOld.mmul(X).sub(fOld);
+    //    System.out.println("nevyazka:" + r.normmax());
+    }
 
-            }
+    @Override
+    public int getN() {
+        return N;
+    }
+
+    private void printX() {
+        for (int i = 0; i < X.rows; i++) {
+            System.out.println(X.get(i, 0));
         }
     }
 }
